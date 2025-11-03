@@ -10,23 +10,43 @@ class ExpenseCalculator {
     }
 
     checkUserLogin() {
-        const savedUserId = localStorage.getItem('currentUserId');
-        if (savedUserId) {
-            this.loadUser(savedUserId);
-        } else {
-            this.showLoginModal();
-        }
+        // Wait a bit for DOM to be fully ready
+        setTimeout(() => {
+            const savedUserId = localStorage.getItem('currentUserId');
+            if (savedUserId) {
+                this.loadUser(savedUserId);
+            } else {
+                this.showLoginModal();
+            }
+        }, 100);
     }
 
     showLoginModal() {
-        document.getElementById('userModal').style.display = 'block';
-        document.getElementById('mainContainer').style.display = 'none';
+        const modal = document.getElementById('userModal');
+        const mainContainer = document.getElementById('mainContainer');
+        
+        if (modal) {
+            modal.style.display = 'block';
+        }
+        
+        if (mainContainer) {
+            mainContainer.style.display = 'none';
+        }
+        
         this.loadExistingUsers();
     }
 
     hideLoginModal() {
-        document.getElementById('userModal').style.display = 'none';
-        document.getElementById('mainContainer').style.display = 'block';
+        const modal = document.getElementById('userModal');
+        const mainContainer = document.getElementById('mainContainer');
+        
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        
+        if (mainContainer) {
+            mainContainer.style.display = 'block';
+        }
     }
 
     loadExistingUsers() {
@@ -93,7 +113,12 @@ class ExpenseCalculator {
     attachEventListeners() {
         const userForm = document.getElementById('userForm');
         if (userForm) {
-            userForm.addEventListener('submit', (e) => this.handleUserSubmit(e));
+            userForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleUserSubmit(e);
+            });
+        } else {
+            console.warn('User form not found');
         }
 
         const switchUserBtn = document.getElementById('switchUserBtn');
@@ -127,10 +152,18 @@ class ExpenseCalculator {
 
     handleUserSubmit(e) {
         e.preventDefault();
-        const userId = document.getElementById('userId').value.trim();
+        const userIdInput = document.getElementById('userId');
         
-        if (userId.length < 3 || userId.length > 20) {
+        if (!userIdInput) {
+            console.error('User ID input not found');
+            return;
+        }
+        
+        const userId = userIdInput.value.trim();
+        
+        if (!userId || userId.length < 3 || userId.length > 20) {
             alert('User ID must be between 3 and 20 characters');
+            userIdInput.focus();
             return;
         }
 
