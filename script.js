@@ -2,11 +2,125 @@
 
 class ExpenseCalculator {
     constructor() {
-        this.expenses = this.loadExpenses();
+        this.currentUserId = null;
         this.currentFilter = '';
         this.categoryKeywords = this.initCategoryKeywords();
+        this.checkUserLogin();
         this.attachEventListeners();
+    }
+
+    checkUserLogin() {
+        const savedUserId = localStorage.getItem('currentUserId');
+        if (savedUserId) {
+            this.loadUser(savedUserId);
+        } else {
+            this.showLoginModal();
+        }
+    }
+
+    showLoginModal() {
+        document.getElementById('userModal').style.display = 'block';
+        document.getElementById('mainContainer').style.display = 'none';
+        this.loadExistingUsers();
+    }
+
+    hideLoginModal() {
+        document.getElementById('userModal').style.display = 'none';
+        document.getElementById('mainContainer').style.display = 'block';
+    }
+
+    loadExistingUsers() {
+        const allUsers = this.getAllUsers();
+        const usersList = document.getElementById('usersList');
+        const existingUsersDiv = document.getElementById('existingUsers');
+
+        if (allUsers.length > 0) {
+            existingUsersDiv.style.display = 'block';
+            usersList.innerHTML = allUsers.map(userId => `
+                <button type="button" class="user-btn" onclick="calculator.loadUser('${userId}')">
+                    👤 ${userId}
+                </button>
+            `).join('');
+        } else {
+            existingUsersDiv.style.display = 'none';
+        }
+    }
+
+    getAllUsers() {
+        const users = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('expenses_')) {
+                const userId = key.replace('expenses_', '');
+                users.push(userId);
+            }
+        }
+        return users.sort();
+    }
+
+    loadUser(userId) {
+        this.currentUserId = userId;
+        localStorage.setItem('currentUserId', userId);
+        this.expenses = this.loadExpenses() || [];
+        document.getElementById('currentUserId').textContent = userId;
+        this.hideLoginModal();
         this.render();
+    }
+
+    switchUser() {
+        if (confirm('Switch to a different user? Your current session will be saved.')) {
+            localStorage.removeItem('currentUserId');
+            this.currentUserId = null;
+            this.showLoginModal();
+        }
+    }
+
+    attachEventListeners() {
+        const userForm = document.getElementById('userForm');
+        if (userForm) {
+            userForm.addEventListener('submit', (e) => this.handleUserSubmit(e));
+        }
+
+        const switchUserBtn = document.getElementById('switchUserBtn');
+        if (switchUserBtn) {
+            switchUserBtn.addEventListener('click', () => this.switchUser());
+        }
+
+        const form = document.getElementById('expenseForm');
+        if (form) {
+            form.addEventListener('submit', (e) => this.handleSubmit(e));
+        }
+
+        const descriptionInput = document.getElementById('description');
+        if (descriptionInput) {
+            descriptionInput.addEventListener('input', () => this.updateCategoryPreview());
+        }
+
+        const filterCategory = document.getElementById('filterCategory');
+        if (filterCategory) {
+            filterCategory.addEventListener('change', (e) => {
+                this.currentFilter = e.target.value;
+                this.render();
+            });
+        }
+
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => this.clearAllExpenses());
+        }
+    }
+
+    handleUserSubmit(e) {
+        e.preventDefault();
+        const userId = document.getElementById('userId').value.trim();
+        
+        if (userId.length < 3 || userId.length > 20) {
+            alert('User ID must be between 3 and 20 characters');
+            return;
+        }
+
+        // Check if user already exists or create new
+        this.loadUser(userId);
     }
 
     initCategoryKeywords() {
@@ -98,6 +212,12 @@ class ExpenseCalculator {
 
     handleSubmit(e) {
         e.preventDefault();
+        
+        if (!this.currentUserId) {
+            alert('Please login first');
+            this.showLoginModal();
+            return;
+        }
         
         const description = document.getElementById('description').value.trim();
         const amount = parseFloat(document.getElementById('amount').value);
@@ -235,11 +355,15 @@ class ExpenseCalculator {
     }
 
     saveExpenses() {
-        localStorage.setItem('expenses', JSON.stringify(this.expenses));
+        if (!this.currentUserId) return;
+        const key = `expenses_${this.currentUserId}`;
+        localStorage.setItem(key, JSON.stringify(this.expenses));
     }
 
     loadExpenses() {
-        const saved = localStorage.getItem('expenses');
+        if (!this.currentUserId) return [];
+        const key = `expenses_${this.currentUserId}`;
+        const saved = localStorage.getItem(key);
         return saved ? JSON.parse(saved) : [];
     }
 }

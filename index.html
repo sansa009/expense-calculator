@@ -7,10 +7,38 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <!-- User Login Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <h2>👤 User Login / Register</h2>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="userId">User ID</label>
+                    <input type="text" id="userId" placeholder="Enter your User ID" required minlength="3" maxlength="20">
+                    <small class="hint-text">Choose a unique User ID (3-20 characters)</small>
+                </div>
+                <button type="submit" class="btn-primary">Continue</button>
+            </form>
+            <div id="existingUsers" class="existing-users" style="display: none;">
+                <hr>
+                <p class="existing-users-title">Existing Users:</p>
+                <div id="usersList" class="users-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
         <header>
-            <h1>💰 Expense Calculator</h1>
-            <p class="subtitle">Track and manage your expenses easily</p>
+            <div class="header-top">
+                <div>
+                    <h1>💰 Expense Calculator</h1>
+                    <p class="subtitle">Track and manage your expenses easily</p>
+                </div>
+                <div class="user-info">
+                    <span class="user-badge">👤 <span id="currentUserId"></span></span>
+                    <button id="switchUserBtn" class="btn-switch">Switch User</button>
+                </div>
+            </div>
         </header>
 
         <div class="summary-card">
