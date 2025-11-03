@@ -12,13 +12,69 @@ class ExpenseCalculator {
     checkUserLogin() {
         // Wait a bit for DOM to be fully ready
         setTimeout(() => {
-            const savedUserId = localStorage.getItem('currentUserId');
-            if (savedUserId) {
-                this.loadUser(savedUserId);
-            } else {
+            try {
+                const savedUserId = this.getLocalStorage('currentUserId');
+                if (savedUserId) {
+                    this.loadUser(savedUserId);
+                } else {
+                    this.showLoginModal();
+                }
+            } catch (error) {
+                console.error('Error checking user login:', error);
+                // If localStorage fails, show login modal anyway
                 this.showLoginModal();
             }
         }, 100);
+    }
+
+    // Safe localStorage wrapper with error handling
+    getLocalStorage(key) {
+        try {
+            if (typeof Storage !== 'undefined') {
+                return localStorage.getItem(key);
+            }
+        } catch (e) {
+            console.warn('localStorage not available:', e.message);
+        }
+        return null;
+    }
+
+    setLocalStorage(key, value) {
+        try {
+            if (typeof Storage !== 'undefined') {
+                localStorage.setItem(key, value);
+                return true;
+            }
+        } catch (e) {
+            console.warn('Failed to save to localStorage:', e.message);
+        }
+        return false;
+    }
+
+    removeLocalStorage(key) {
+        try {
+            if (typeof Storage !== 'undefined') {
+                localStorage.removeItem(key);
+                return true;
+            }
+        } catch (e) {
+            console.warn('Failed to remove from localStorage:', e.message);
+        }
+        return false;
+    }
+
+    getAllLocalStorageKeys() {
+        const keys = [];
+        try {
+            if (typeof Storage !== 'undefined') {
+                for (let i = 0; i < localStorage.length; i++) {
+                    keys.push(localStorage.key(i));
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to access localStorage:', e.message);
+        }
+        return keys;
     }
 
     showLoginModal() {
@@ -68,21 +124,30 @@ class ExpenseCalculator {
 
     getAllUsers() {
         const users = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('expenses_')) {
-                const userId = key.replace('expenses_', '');
-                users.push(userId);
+        try {
+            const keys = this.getAllLocalStorageKeys();
+            for (const key of keys) {
+                if (key && key.startsWith('expenses_')) {
+                    const userId = key.replace('expenses_', '');
+                    users.push(userId);
+                }
             }
+        } catch (error) {
+            console.warn('Error getting users:', error);
         }
         return users.sort();
     }
 
     loadUser(userId) {
         this.currentUserId = userId;
-        localStorage.setItem('currentUserId', userId);
+        this.setLocalStorage('currentUserId', userId);
         this.expenses = this.loadExpenses() || [];
-        document.getElementById('currentUserId').textContent = userId;
+        
+        const userIdElement = document.getElementById('currentUserId');
+        if (userIdElement) {
+            userIdElement.textContent = userId;
+        }
+        
         this.hideLoginModal();
         this.render();
         
@@ -104,7 +169,7 @@ class ExpenseCalculator {
 
     switchUser() {
         if (confirm('Switch to a different user? Your current session will be saved.')) {
-            localStorage.removeItem('currentUserId');
+            this.removeLocalStorage('currentUserId');
             this.currentUserId = null;
             this.showLoginModal();
         }
@@ -411,15 +476,25 @@ class ExpenseCalculator {
 
     saveExpenses() {
         if (!this.currentUserId) return;
-        const key = `expenses_${this.currentUserId}`;
-        localStorage.setItem(key, JSON.stringify(this.expenses));
+        try {
+            const key = `expenses_${this.currentUserId}`;
+            this.setLocalStorage(key, JSON.stringify(this.expenses));
+        } catch (error) {
+            console.error('Failed to save expenses:', error);
+            alert('⚠️ Warning: Could not save expenses. They may be lost if you refresh the page.');
+        }
     }
 
     loadExpenses() {
         if (!this.currentUserId) return [];
-        const key = `expenses_${this.currentUserId}`;
-        const saved = localStorage.getItem(key);
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const key = `expenses_${this.currentUserId}`;
+            const saved = this.getLocalStorage(key);
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('Failed to load expenses:', error);
+            return [];
+        }
     }
 }
 
