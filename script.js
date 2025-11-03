@@ -65,6 +65,21 @@ class ExpenseCalculator {
         document.getElementById('currentUserId').textContent = userId;
         this.hideLoginModal();
         this.render();
+        
+        // Show welcome message for new users
+        if (this.expenses.length === 0) {
+            setTimeout(() => {
+                const welcomeMsg = document.createElement('div');
+                welcomeMsg.className = 'success-message';
+                welcomeMsg.innerHTML = `✅ Welcome, <strong>${userId}</strong>! Start adding your expenses below.`;
+                welcomeMsg.style.cssText = 'background: #4CAF50; color: white; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 500px; text-align: center; animation: slideDown 0.3s;';
+                const formSection = document.querySelector('.form-section');
+                if (formSection) {
+                    formSection.insertBefore(welcomeMsg, formSection.firstChild);
+                    setTimeout(() => welcomeMsg.remove(), 5000);
+                }
+            }, 300);
+        }
     }
 
     switchUser() {
@@ -178,23 +193,6 @@ class ExpenseCalculator {
         return 'Other';
     }
 
-    attachEventListeners() {
-        const form = document.getElementById('expenseForm');
-        form.addEventListener('submit', (e) => this.handleSubmit(e));
-
-        const descriptionInput = document.getElementById('description');
-        descriptionInput.addEventListener('input', () => this.updateCategoryPreview());
-
-        const filterCategory = document.getElementById('filterCategory');
-        filterCategory.addEventListener('change', (e) => {
-            this.currentFilter = e.target.value;
-            this.render();
-        });
-
-        const clearAllBtn = document.getElementById('clearAllBtn');
-        clearAllBtn.addEventListener('click', () => this.clearAllExpenses());
-    }
-
     updateCategoryPreview() {
         const description = document.getElementById('description').value.trim();
         const categoryPreview = document.getElementById('categoryPreview');
@@ -242,9 +240,33 @@ class ExpenseCalculator {
         this.saveExpenses();
         this.render();
         
+        // Show success message
+        this.showSuccessMessage(`✅ Expense saved! (${this.getCategoryEmoji(category)} ${category})`);
+        
         // Reset form
         document.getElementById('expenseForm').reset();
         document.getElementById('categoryPreview').style.display = 'none';
+    }
+
+    showSuccessMessage(message) {
+        // Remove existing success messages
+        const existing = document.querySelector('.success-message');
+        if (existing) existing.remove();
+        
+        const successMsg = document.createElement('div');
+        successMsg.className = 'success-message';
+        successMsg.textContent = message;
+        successMsg.style.cssText = 'background: #4CAF50; color: white; padding: 12px 20px; border-radius: 8px; margin: 15px auto; max-width: 500px; text-align: center; animation: slideDown 0.3s; font-weight: 500; box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);';
+        
+        const formSection = document.querySelector('.form-section');
+        if (formSection) {
+            formSection.insertBefore(successMsg, formSection.querySelector('h2').nextSibling);
+            setTimeout(() => {
+                successMsg.style.opacity = '0';
+                successMsg.style.transition = 'opacity 0.3s';
+                setTimeout(() => successMsg.remove(), 300);
+            }, 3000);
+        }
     }
 
     deleteExpense(id) {
