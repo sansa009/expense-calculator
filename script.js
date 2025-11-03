@@ -1,0 +1,252 @@
+// Expense Calculator Application
+
+class ExpenseCalculator {
+    constructor() {
+        this.expenses = this.loadExpenses();
+        this.currentFilter = '';
+        this.categoryKeywords = this.initCategoryKeywords();
+        this.attachEventListeners();
+        this.render();
+    }
+
+    initCategoryKeywords() {
+        return {
+            'Food': [
+                'food', 'groceries', 'restaurant', 'coffee', 'lunch', 'dinner', 'breakfast',
+                'starbucks', 'mcdonalds', 'pizza', 'burger', 'sushi', 'cafe', 'bakery',
+                'supermarket', 'walmart', 'target', 'whole foods', 'trader joe', 'kroger',
+                'snack', 'meal', 'takeout', 'delivery', 'grubhub', 'ubereats', 'doordash'
+            ],
+            'Transport': [
+                'gas', 'fuel', 'uber', 'lyft', 'taxi', 'parking', 'metro', 'subway',
+                'bus', 'train', 'airline', 'flight', 'airport', 'car', 'vehicle',
+                'maintenance', 'repair', 'oil change', 'tire', 'insurance', 'registration'
+            ],
+            'Shopping': [
+                'amazon', 'shopping', 'store', 'mall', 'clothes', 'clothing', 'shoes',
+                'electronics', 'phone', 'laptop', 'book', 'gift', 'purchase', 'buy',
+                'walmart', 'target', 'best buy', 'home depot', 'costco', 'ikea'
+            ],
+            'Bills': [
+                'bill', 'electric', 'electricity', 'water', 'internet', 'wifi', 'cable',
+                'phone bill', 'mobile', 'rent', 'mortgage', 'utilities', 'insurance',
+                'subscription', 'netflix', 'spotify', 'hulu', 'disney', 'apple music',
+                'youtube premium', 'adobe', 'microsoft', 'cloud', 'hosting'
+            ],
+            'Entertainment': [
+                'movie', 'cinema', 'theater', 'concert', 'show', 'ticket', 'event',
+                'netflix', 'spotify', 'hulu', 'disney', 'streaming', 'game', 'gaming',
+                'steam', 'playstation', 'xbox', 'nintendo', 'bowling', 'arcade', 'bar',
+                'club', 'party', 'nightlife', 'music', 'sport', 'fitness', 'gym'
+            ],
+            'Health': [
+                'doctor', 'hospital', 'pharmacy', 'medicine', 'drug', 'prescription',
+                'dentist', 'optometrist', 'glasses', 'contact', 'vitamin', 'supplement',
+                'gym', 'fitness', 'yoga', 'pilates', 'massage', 'spa', 'therapy',
+                'cvs', 'walgreens', 'clinic', 'medical', 'health'
+            ]
+        };
+    }
+
+    detectCategory(description) {
+        const lowerDesc = description.toLowerCase();
+        
+        // Check each category's keywords
+        for (const [category, keywords] of Object.entries(this.categoryKeywords)) {
+            for (const keyword of keywords) {
+                if (lowerDesc.includes(keyword)) {
+                    return category;
+                }
+            }
+        }
+        
+        // Default to 'Other' if no match found
+        return 'Other';
+    }
+
+    attachEventListeners() {
+        const form = document.getElementById('expenseForm');
+        form.addEventListener('submit', (e) => this.handleSubmit(e));
+
+        const descriptionInput = document.getElementById('description');
+        descriptionInput.addEventListener('input', () => this.updateCategoryPreview());
+
+        const filterCategory = document.getElementById('filterCategory');
+        filterCategory.addEventListener('change', (e) => {
+            this.currentFilter = e.target.value;
+            this.render();
+        });
+
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        clearAllBtn.addEventListener('click', () => this.clearAllExpenses());
+    }
+
+    updateCategoryPreview() {
+        const description = document.getElementById('description').value.trim();
+        const categoryPreview = document.getElementById('categoryPreview');
+        const detectedCategorySpan = document.getElementById('detectedCategory');
+
+        if (description.length > 0) {
+            const detectedCategory = this.detectCategory(description);
+            const emoji = this.getCategoryEmoji(detectedCategory);
+            detectedCategorySpan.innerHTML = `${emoji} ${detectedCategory}`;
+            categoryPreview.style.display = 'flex';
+        } else {
+            categoryPreview.style.display = 'none';
+        }
+    }
+
+    handleSubmit(e) {
+        e.preventDefault();
+        
+        const description = document.getElementById('description').value.trim();
+        const amount = parseFloat(document.getElementById('amount').value);
+
+        if (!description || !amount || isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid description and amount');
+            return;
+        }
+
+        const category = this.detectCategory(description);
+        const date = new Date().toISOString().split('T')[0]; // Today's date
+
+        const expense = {
+            id: Date.now(),
+            description,
+            amount,
+            category,
+            date
+        };
+
+        this.expenses.push(expense);
+        this.saveExpenses();
+        this.render();
+        
+        // Reset form
+        document.getElementById('expenseForm').reset();
+        document.getElementById('categoryPreview').style.display = 'none';
+    }
+
+    deleteExpense(id) {
+        if (confirm('Are you sure you want to delete this expense?')) {
+            this.expenses = this.expenses.filter(expense => expense.id !== id);
+            this.saveExpenses();
+            this.render();
+        }
+    }
+
+    clearAllExpenses() {
+        if (this.expenses.length === 0) {
+            alert('No expenses to clear');
+            return;
+        }
+
+        if (confirm('Are you sure you want to delete ALL expenses? This cannot be undone.')) {
+            this.expenses = [];
+            this.saveExpenses();
+            this.render();
+        }
+    }
+
+    getFilteredExpenses() {
+        if (!this.currentFilter) {
+            return this.expenses;
+        }
+        return this.expenses.filter(expense => expense.category === this.currentFilter);
+    }
+
+    calculateTotal() {
+        return this.getFilteredExpenses().reduce((sum, expense) => sum + expense.amount, 0);
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    }
+
+    getCategoryEmoji(category) {
+        const emojiMap = {
+            'Food': '🍔',
+            'Transport': '🚗',
+            'Shopping': '🛒',
+            'Bills': '💳',
+            'Entertainment': '🎬',
+            'Health': '🏥',
+            'Other': '📦'
+        };
+        return emojiMap[category] || '📦';
+    }
+
+    render() {
+        this.renderSummary();
+        this.renderExpenses();
+    }
+
+    renderSummary() {
+        const filteredExpenses = this.getFilteredExpenses();
+        const total = this.calculateTotal();
+        const count = filteredExpenses.length;
+
+        document.getElementById('totalExpenses').textContent = `Rs ${total.toFixed(2)}`;
+        document.getElementById('totalItems').textContent = count;
+    }
+
+    renderExpenses() {
+        const expensesList = document.getElementById('expensesList');
+        const filteredExpenses = this.getFilteredExpenses();
+
+        if (filteredExpenses.length === 0) {
+            expensesList.innerHTML = '<p class="empty-message">No expenses found. ' + 
+                (this.currentFilter ? 'Try changing the filter or add a new expense!' : 'Add your first expense above!') + 
+                '</p>';
+            return;
+        }
+
+        // Sort by date (newest first)
+        const sortedExpenses = [...filteredExpenses].sort((a, b) => 
+            new Date(b.date) - new Date(a.date)
+        );
+
+        expensesList.innerHTML = sortedExpenses.map(expense => `
+            <div class="expense-item">
+                <div class="expense-info">
+                    <div class="expense-description">${this.escapeHtml(expense.description)}</div>
+                    <div class="expense-meta">
+                        <span class="expense-category">${this.getCategoryEmoji(expense.category)} ${expense.category}</span>
+                        <span>📅 ${this.formatDate(expense.date)}</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span class="expense-amount">Rs ${expense.amount.toFixed(2)}</span>
+                    <button class="btn-delete" onclick="calculator.deleteExpense(${expense.id})">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    saveExpenses() {
+        localStorage.setItem('expenses', JSON.stringify(this.expenses));
+    }
+
+    loadExpenses() {
+        const saved = localStorage.getItem('expenses');
+        return saved ? JSON.parse(saved) : [];
+    }
+}
+
+// Initialize the calculator when the page loads
+let calculator;
+document.addEventListener('DOMContentLoaded', () => {
+    calculator = new ExpenseCalculator();
+});
+
